@@ -1,0 +1,13 @@
+{
+  "name": "AI Usage Bar Local",
+  "version": "2.2.0",
+  "upstream": "https://github.com/liamlai88/ai-usage-bar",
+  "upstream_commit": "5109cc192f36d782a57f2a3c1c8e6eadc8995b1a",
+  "type": "local hardened native JXA port; not an upstream release",
+  "sources": {
+    "main.js": "1834d13f0631c9c44b4fac2038bb2a85428cde737ea40d49641c9b13f6c80872",
+    "collector.py": "89a146f2171a94fcd0fc7d8538205331e15074dc0c4bb68b066a588d460796d4",
+    "AppIcon.icns": "1210990f70a34ec8c8cdc9f1fddac60c03a8d4e1601e498e37bd73d0ecc41558"
+  },
+  "changes": "Selected design 3: pastel quota cards, large remaining percentages and countdowns, balance and reset pass band. Collector unchanged."
+}

@@ -1,0 +1,11 @@
+*.app/
+*.dmg
+*.zip
+__pycache__/
+.DS_Store
+auth.json
+usage.json
+display.json
+window.png
+ui-error.json
+.env*
