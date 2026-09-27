@@ -46,3 +46,7 @@ python3 build.py '/tmp/AI Usage Bar Local.app'
 ## 来源与许可
 
 基于 [liamlai88/ai-usage-bar](https://github.com/liamlai88/ai-usage-bar) 的思路及 MIT 许可代码，来源提交 `5109cc192f36d782a57f2a3c1c8e6eadc8995b1a`。这是本地加固的原生 JXA/AppKit 移植版本，不是上游官方发行版。保留上游 MIT 许可和版权声明。应用图标为本项目生成的图标。
+
+## 后续研究与测试
+
+开发入口、测试场景及反馈要求见 [RESEARCH.md](RESEARCH.md)。安装包请从本仓库 Releases 获取；核对随附 SHA-256 清单，避免使用来历不明的重打包。
