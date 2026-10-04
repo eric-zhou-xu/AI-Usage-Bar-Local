@@ -1,11 +1,8 @@
-# Native UI verification — 2.3.0
+# 2.3.1 verification
 
-Reference: supplied Codex usage-bar image. Adapted to an 860 × 660 native macOS window so reset times and balance remain readable.
-
-Verified from the native view capture: blue/violet/coral background, contrasting rounded capsule pair, SF Symbols, green remaining-quota ring, readable Chinese labels, no overlapping or clipped content. Live collector data reached the view; absent short window shows unavailable, not zero.
-
-Nine collector tests passed, including missing values, primary weekly windows, unsafe credentials and no redirects. Native compilation and strict ad-hoc signature verification passed.
-
-This is an adaptation, not a pixel-for-pixel copy of the promotional poster. Real account captures stay local and are excluded from the release.
-
-final result: passed
+- Generated purple/coral icon inspected; white gauge, green bars and transparent exterior retained.
+- ICNS payload is non-empty with a valid header and length; build rejects malformed icons.
+- Native application built, installed and signature verified.
+- 9 collector tests plus indicator boundary tests passed (10 cases covering thresholds, missing/stale data, most-constrained window and unrelated windows).
+- Live account fetch populated the menu-bar indicator state and refreshed after installation.
+- Desktop capture was unavailable while the desktop showed only wallpaper; physical menu-bar placement and minimization interaction were not visually confirmed in this session. The indicator is assigned to NSStatusItem independently of window visibility.

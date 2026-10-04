@@ -1,13 +1,13 @@
 {
   "name": "AI Usage Bar Local",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "upstream": "https://github.com/liamlai88/ai-usage-bar",
   "upstream_commit": "5109cc192f36d782a57f2a3c1c8e6eadc8995b1a",
   "type": "local hardened native JXA port; not an upstream release",
   "sources": {
-    "main.js": "89bb94375f5427e9a93c0d13fc963f50eb11429b0f8d072f80b275999a1132ac",
+    "main.js": "969979ea32d73cc9bafbc9a1d1767ab790af4888c708deb75616cd6e4273c694",
     "collector.py": "89a146f2171a94fcd0fc7d8538205331e15074dc0c4bb68b066a588d460796d4",
-    "AppIcon.icns": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    "AppIcon.icns": "b43c8e37804d6921f6a802d48e13aca4a83e4e0d34fcece87c1b85fe6876cb40"
   },
-  "changes": "Native violet capsule UI with live remaining-quota rings and existing read-only collector."
+  "changes": "Coordinated violet/coral icon and native live menu-bar quota indicator; icon payload validated before building."
 }

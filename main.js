@@ -1,4 +1,4 @@
-// AI Usage Bar Local 2.3.0. Native AppKit UI; no web views or downloaded UI dependencies.
+// AI Usage Bar Local 2.3.1. Native AppKit UI; no web views or downloaded UI dependencies.
 ObjC.import('AppKit');
 ObjC.import('Foundation');
 var base=ObjC.unwrap($.NSBundle.mainBundle.resourcePath);
@@ -17,7 +17,23 @@ function writePrivate(name,value){var p=stateDir+'/'+name;$(JSON.stringify(value
 function fmtDate(seconds){var d=new Date(seconds*1000);function p(n){return String(n).padStart(2,'0');}return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());}
 function countdown(seconds){if(!seconds)return '尚无重置时间';var n=Math.max(0,Math.floor(seconds-Date.now()/1000));if(!n)return '等待服务端更新';var d=Math.floor(n/86400),h=Math.floor(n%86400/3600),m=Math.floor(n%3600/60);return (d?d+'天 ':'')+(h?h+'小时 ':'')+m+'分';}
 function pctColor(used){return used<75?palette.green:used<90?palette.orange:palette.red;}
-function lights(x,y,w,used,accent){var gap=4,count=20,cell=(w-gap*(count-1))/count;var remaining=used===null?0:Math.round((100-used)/100*count);panel(x-5,y-5,w+10,30,'#F7FAFA',15,'#DBE4E7');for(var i=0;i<count;i++)panel(x+i*(cell+gap),y,cell,20,i<remaining?(used>=90?palette.red:used>=75?palette.orange:accent):'#D9E1E6',6);}
+// Pure status logic: the tightest returned Codex window determines the light.
+function indicatorState(windows,stale){
+ var usable=windows.filter(function(w){return w.label==='Codex'&&typeof w.used==='number'&&Number.isFinite(w.used)&&w.used>=0&&w.used<=100;});
+ if(stale||!usable.length)return {level:'unknown',lit:0,color:'#A3A0AC',label:stale?'数据已过期，请刷新':'等待额度数据'};
+ var used=Math.max.apply(null,usable.map(function(w){return w.used;}));
+ return {level:used>=90?'low':used>=75?'warning':'normal',lit:Math.ceil((100-used)/20),color:used>=90?'#FF6488':used>=75?'#FFC46B':'#50E9B5',label:used>=90?'额度接近用尽':used>=75?'额度偏低':'额度充足'};
+}
+function indicatorImage(info){
+ var image=$.NSImage.alloc.initWithSize($.NSMakeSize(35,18));image.lockFocus;
+ for(var i=0;i<5;i++){
+  var cell=$.NSBezierPath.bezierPathWithRoundedRectXRadiusYRadius($.NSMakeRect(2+i*6.5,4,4.5,10),2,2);
+  col(info.color).colorWithAlphaComponent(info.level==='unknown'?0.65:i<info.lit?1:0.22).setFill;cell.fill;
+  // Keep empty slots outlined, including the fully exhausted state.
+  col(info.color).colorWithAlphaComponent(0.75).setStroke;cell.lineWidth=0.5;cell.stroke;
+ }
+ image.unlockFocus;image.template=false;return image;
+}
 function showWindow(){window.makeKeyAndOrderFront(null);app.activateIgnoringOtherApps(true);}
 function startFetch(){if(task)return;task=$.NSTask.alloc.init;task.executableURL=$.NSURL.fileURLWithPath('/usr/local/bin/python3');task.arguments=$(['-I','-B',base+'/collector.py']);task.environment=$({HOME:ObjC.unwrap($.NSHomeDirectory()),PATH:'/usr/bin:/bin',LANG:'en_US.UTF-8',PYTHONUTF8:'1'});pipe=$.NSPipe.pipe;task.standardOutput=pipe;task.standardError=$.NSFileHandle.fileHandleWithNullDevice;task.launch;started=Date.now();nextFetch=started+60000;}
 function addItem(title,action){var item=$.NSMenuItem.alloc.initWithTitleActionKeyEquivalent($(title),action||null,$(''));if(action)item.target=delegate;menu.addItem(item);}
@@ -78,15 +94,15 @@ function draw(){
  var schedule=[{name:'5 小时重置',date:five&&five.reset?fmtDate(five.reset):'未提供'},{name:'7 天重置',date:week&&week.reset?fmtDate(week.reset):'未提供'}];
  var lead=week||five||windows[0];
  var title=(stale?'⚠ ': '')+(lead?(lead===week?'周 ':'')+(100-lead.used)+'%余':'Codex')+(Number.isFinite(credit)?' · '+Math.floor(credit).toLocaleString('en-US')+'点':'');
- status.button.title=$(title);status.button.toolTip=$('套餐剩余比例 · 加购 Credits 余额；点击查看额度总览');
- menu.removeAllItems;addItem('打开额度总览','show:');addItem('立即刷新','refresh:');menu.addItem($.NSMenuItem.separatorItem);
+ var indicator=indicatorState(windows,stale);status.button.image=indicatorImage(indicator);status.button.imagePosition=$.NSImageLeft;status.button.title=$(title);status.button.toolTip=$(indicator.label+' · 每格约 20% 剩余额度，按最紧张的 Codex 窗口显示；灰色表示数据不可用。点击查看详情');status.button.setAccessibilityLabel($(indicator.label+'，'+title));
+ menu.removeAllItems;addItem('指示灯：'+indicator.label);addItem('打开额度总览','show:');addItem('立即刷新','refresh:');menu.addItem($.NSMenuItem.separatorItem);
  addItem('5 小时：'+(five?(100-five.used)+'%剩余':'当前账户未提供'));
  addItem('7 天：'+(week?(100-week.used)+'%剩余':'当前账户未提供'));
  addItem('加购余额：'+creditText+' Credits');
  menu.addItem($.NSMenuItem.separatorItem);addItem('官方用量页面','official:');addItem('额度详情','details:');addItem('退出','stop:');
- writePrivate('display.json',{version:'2.3.0',rendered_at:Date.now()/1000,title:title,five_hour:five,seven_day:week,credits:creditText,schedule:schedule,reset_pass_count:resetCount,stale:stale});
- if(snapshot&&window.isVisible&&!$.NSFileManager.defaultManager.fileExistsAtPath(stateDir+'/window-2.3.png')){
-  var rep=root.bitmapImageRepForCachingDisplayInRect(root.bounds);root.cacheDisplayInRectToBitmapImageRep(root.bounds,rep);rep.representationUsingTypeProperties($.NSBitmapImageFileTypePNG,$({})).writeToFileAtomically(stateDir+'/window-2.3.png',true);$.NSFileManager.defaultManager.setAttributesOfItemAtPathError($({NSFilePosixPermissions:384}),stateDir+'/window-2.3.png',null);
+ writePrivate('display.json',{version:'2.3.1',rendered_at:Date.now()/1000,title:title,five_hour:five,seven_day:week,credits:creditText,schedule:schedule,reset_pass_count:resetCount,stale:stale,indicator:indicator});
+ if(snapshot&&window.isVisible&&!$.NSFileManager.defaultManager.fileExistsAtPath(stateDir+'/window-2.3.1.png')){
+  var rep=root.bitmapImageRepForCachingDisplayInRect(root.bounds);root.cacheDisplayInRectToBitmapImageRep(root.bounds,rep);rep.representationUsingTypeProperties($.NSBitmapImageFileTypePNG,$({})).writeToFileAtomically(stateDir+'/window-2.3.1.png',true);$.NSFileManager.defaultManager.setAttributesOfItemAtPathError($({NSFilePosixPermissions:384}),stateDir+'/window-2.3.1.png',null);
  }
  lastDraw=Date.now();
 }
@@ -114,8 +130,8 @@ ObjC.registerSubclass({name:'AIUsageLocalDelegate',superclass:'NSObject',methods
  'official:':{types:['void',['id']],implementation:function(){$.NSWorkspace.sharedWorkspace.openURL($.NSURL.URLWithString('https://chatgpt.com/codex/settings/usage'));}},
  'stop:':{types:['void',['id']],implementation:function(){if(task)task.terminate;app.terminate(null);}}
 }});
-function startUI(){app.setActivationPolicy($.NSApplicationActivationPolicyAccessory);$.NSFileManager.defaultManager.createDirectoryAtPathWithIntermediateDirectoriesAttributesError(stateDir,true,$({NSFilePosixPermissions:448}),null);delegate=$.AIUsageLocalDelegate.alloc.init;status=$.NSStatusBar.systemStatusBar.statusItemWithLength($.NSVariableStatusItemLength);menu=$.NSMenu.alloc.initWithTitle($('Codex 额度'));status.menu=menu;window=$.NSWindow.alloc.initWithContentRectStyleMaskBackingDefer($.NSMakeRect(0,0,W,H),1|2|4,$.NSBackingStoreBuffered,false);window.title=$('AI Usage Bar');window.releasedWhenClosed=false;window.appearance=$.NSAppearance.appearanceNamed($.NSAppearanceNameDarkAqua);root=window.contentView;window.center;draw();showWindow();startFetch();ticker=$.NSTimer.scheduledTimerWithTimeIntervalTargetSelectorUserInfoRepeats(1,delegate,'tick:',null,true);}
-function idle(){if(!root)return 1;try{if(task&&!task.isRunning){var bytes=pipe.fileHandleForReading.readDataToEndOfFile;var result=JSON.parse(ObjC.unwrap($.NSString.alloc.initWithDataEncoding(bytes,$.NSUTF8StringEncoding)));task=null;pipe=null;if(result.ok){snapshot=result;lastError='';writePrivate('usage.json',snapshot);}else lastError=result.error||'读取失败';draw();}if(task&&Date.now()-started>27000){task.terminate;task=null;pipe=null;lastError='请求超时';draw();}if(!task&&Date.now()>=nextFetch)startFetch();if(Date.now()-lastDraw>15000)draw();}catch(e){task=null;pipe=null;lastError='同步或显示失败，稍后重试';nextFetch=Date.now()+60000;writePrivate('ui-error.json',{version:'2.3.0',at:Date.now()/1000,message:String(e).slice(0,250)});}return 1;}
+function startUI(){app.setActivationPolicy($.NSApplicationActivationPolicyAccessory);app.applicationIconImage=$.NSImage.alloc.initWithContentsOfFile(base+'/AppIcon.icns');$.NSFileManager.defaultManager.createDirectoryAtPathWithIntermediateDirectoriesAttributesError(stateDir,true,$({NSFilePosixPermissions:448}),null);delegate=$.AIUsageLocalDelegate.alloc.init;status=$.NSStatusBar.systemStatusBar.statusItemWithLength($.NSVariableStatusItemLength);menu=$.NSMenu.alloc.initWithTitle($('Codex 额度'));status.menu=menu;window=$.NSWindow.alloc.initWithContentRectStyleMaskBackingDefer($.NSMakeRect(0,0,W,H),1|2|4,$.NSBackingStoreBuffered,false);window.title=$('AI Usage Bar');window.releasedWhenClosed=false;window.appearance=$.NSAppearance.appearanceNamed($.NSAppearanceNameDarkAqua);root=window.contentView;window.center;draw();showWindow();startFetch();ticker=$.NSTimer.scheduledTimerWithTimeIntervalTargetSelectorUserInfoRepeats(1,delegate,'tick:',null,true);}
+function idle(){if(!root)return 1;try{if(task&&!task.isRunning){var bytes=pipe.fileHandleForReading.readDataToEndOfFile;var result=JSON.parse(ObjC.unwrap($.NSString.alloc.initWithDataEncoding(bytes,$.NSUTF8StringEncoding)));task=null;pipe=null;if(result.ok){snapshot=result;lastError='';writePrivate('usage.json',snapshot);}else lastError=result.error||'读取失败';draw();}if(task&&Date.now()-started>27000){task.terminate;task=null;pipe=null;lastError='请求超时';draw();}if(!task&&Date.now()>=nextFetch)startFetch();if(Date.now()-lastDraw>15000)draw();}catch(e){task=null;pipe=null;lastError='同步或显示失败，稍后重试';nextFetch=Date.now()+60000;writePrivate('ui-error.json',{version:'2.3.1',at:Date.now()/1000,message:String(e).slice(0,250)});}return 1;}
 function reopen(){showWindow();}
 
-function run(){try{startUI();}catch(e){writePrivate("startup-error-2.3.json",{message:String(e),stack:e.stack||""});}}
+function run(){try{startUI();}catch(e){writePrivate("startup-error-2.3.1.json",{message:String(e),stack:e.stack||""});}}
