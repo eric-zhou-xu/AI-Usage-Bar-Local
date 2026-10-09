@@ -1,13 +1,13 @@
 {
   "name": "AI Usage Bar Local",
-  "version": "2.3.1",
+  "version": "2.4.1",
   "upstream": "https://github.com/liamlai88/ai-usage-bar",
   "upstream_commit": "5109cc192f36d782a57f2a3c1c8e6eadc8995b1a",
   "type": "local hardened native JXA port; not an upstream release",
   "sources": {
-    "main.js": "969979ea32d73cc9bafbc9a1d1767ab790af4888c708deb75616cd6e4273c694",
+    "main.js": "201c1d88ee6407bc79311ad289b963a4415623a0a9333318f6f1e672984a40c3",
     "collector.py": "89a146f2171a94fcd0fc7d8538205331e15074dc0c4bb68b066a588d460796d4",
     "AppIcon.icns": "b43c8e37804d6921f6a802d48e13aca4a83e4e0d34fcece87c1b85fe6876cb40"
   },
-  "changes": "Coordinated violet/coral icon and native live menu-bar quota indicator; icon payload validated before building."
+  "changes": "Compact native weekly-circle UI (320x300 content), weekly-only display, remaining-quota green/blue/red thresholds, exact five-pillar fractional fills, opaque native content background."
 }

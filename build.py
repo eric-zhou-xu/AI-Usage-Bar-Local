@@ -14,13 +14,14 @@ if len(icon_bytes)<8 or icon_bytes[:4]!=b'icns' or int.from_bytes(icon_bytes[4:8
     raise SystemExit('Invalid or empty app icon; refuse to build.')
 if output.exists():
     raise SystemExit('Output exists; choose a new path.')
+output.parent.mkdir(parents=True, exist_ok=True)
 subprocess.run(['/usr/bin/osacompile', '-l', 'JavaScript', '-s', '-o', str(output), str(source/'main.js')], check=True)
 p = output/'Contents/Info.plist'
 info = plistlib.loads(p.read_bytes())
 info.pop('CFBundleIconName', None)  # Remove the template asset-catalog override.
 info.update(CFBundleIdentifier='local.aiusagebar.safe', CFBundleName='AI Usage Bar Local',
-            CFBundleDisplayName='AI Usage Bar Local', CFBundleShortVersionString='2.3.1',
-            CFBundleIconFile='AppIcon.icns', CFBundleVersion='8', LSUIElement=True)
+            CFBundleDisplayName='AI Usage Bar Local', CFBundleShortVersionString='2.4.1',
+            CFBundleIconFile='AppIcon.icns', CFBundleVersion='10', LSUIElement=True)
 p.write_bytes(plistlib.dumps(info))
 for name in ['collector.py', 'main.js', 'LICENSE', 'BUILD.json', 'AppIcon.icns']:
     shutil.copy2(source/name, output/'Contents/Resources'/name)

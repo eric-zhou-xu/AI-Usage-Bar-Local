@@ -1,8 +1,9 @@
-# 2.3.1 verification
+# 2.4.1 verification
 
-- Generated purple/coral icon inspected; white gauge, green bars and transparent exterior retained.
-- ICNS payload is non-empty with a valid header and length; build rejects malformed icons.
-- Native application built, installed and signature verified.
-- 9 collector tests plus indicator boundary tests passed (10 cases covering thresholds, missing/stale data, most-constrained window and unrelated windows).
-- Live account fetch populated the menu-bar indicator state and refreshed after installation.
-- Desktop capture was unavailable while the desktop showed only wallpaper; physical menu-bar placement and minimization interaction were not visually confirmed in this session. The indicator is assigned to NSStatusItem independently of window visibility.
+- Actual native window reduced from 640×602 to 320×332 points; content reduced from 640×570 to 320×300.
+- Light single-circle layout inspected in the native running app. Text and controls remain readable without clipping or horizontal scrolling.
+- 27 pure UI logic checks cover quota thresholds, exact fractional pillar fills, success/stale/missing states, reset-time formatting, and layout widths 320/400/640.
+- Collector unchanged. Collector and native indicator tests must pass before release.
+- Native app compiles and strict ad-hoc signature verification passes.
+- Native content background is opaque; app-content capture pixel alpha is fully opaque. No runtime screenshots or account values are committed.
+- Legacy release assets are not replaced by this source update.

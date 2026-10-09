@@ -9,3 +9,9 @@ display.json
 window.png
 ui-error.json
 .env*
+
+# Runtime verification exports contain personal usage data.
+window-*.png
+menu-bar-*.png
+ui-error-*.json
+startup-error-*.json
