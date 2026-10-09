@@ -1,7 +1,7 @@
-// AI Usage Bar Local 2.4.1 — native weekly quota utility.
+// AI Usage Bar Local 2.4.2 — native weekly quota utility.
 ObjC.import('AppKit');
 ObjC.import('Foundation');
-var APP_VERSION='2.4.1';
+var APP_VERSION='2.4.2';
 var base=ObjC.unwrap($.NSBundle.mainBundle.resourcePath);
 var stateDir=ObjC.unwrap($.NSHomeDirectory())+'/Library/Application Support/AI Usage Bar Local';
 var app=$.NSApplication.sharedApplication;
@@ -156,7 +156,7 @@ ObjC.registerSubclass({name:'AIUsageLocalDelegate',superclass:'NSObject',methods
 function startUI(){
  app.setActivationPolicy($.NSApplicationActivationPolicyAccessory);app.applicationIconImage=$.NSImage.alloc.initWithContentsOfFile(base+'/AppIcon.icns');$.NSFileManager.defaultManager.createDirectoryAtPathWithIntermediateDirectoriesAttributesError(stateDir,true,$({NSFilePosixPermissions:448}),null);
  delegate=$.AIUsageLocalDelegate.alloc.init;status=$.NSStatusBar.systemStatusBar.statusItemWithLength($.NSVariableStatusItemLength);menu=$.NSMenu.alloc.initWithTitle($('Codex 额度'));status.menu=menu;
- window=$.NSWindow.alloc.initWithContentRectStyleMaskBackingDefer($.NSMakeRect(0,0,W,H),1|2|4|8,$.NSBackingStoreBuffered,false);window.title=$('Codex 用量');window.titleVisibility=1;window.titlebarAppearsTransparent=true;window.releasedWhenClosed=false;window.appearance=$.NSAppearance.appearanceNamed($.NSAppearanceNameAqua);window.minSize=$.NSMakeSize(320,332);
+ window=$.NSWindow.alloc.initWithContentRectStyleMaskBackingDefer($.NSMakeRect(0,0,W,H),1|2|4,$.NSBackingStoreBuffered,false);window.title=$('Codex 用量');window.titleVisibility=1;window.titlebarAppearsTransparent=true;window.releasedWhenClosed=false;window.appearance=$.NSAppearance.appearanceNamed($.NSAppearanceNameAqua);window.minSize=$.NSMakeSize(320,332);window.maxSize=$.NSMakeSize(320,332);window.setContentSize($.NSMakeSize(320,300));
  root=window.contentView;window.delegate=delegate;window.center;draw();showWindow();startFetch();draw();ticker=$.NSTimer.scheduledTimerWithTimeIntervalTargetSelectorUserInfoRepeats(1,delegate,'tick:',null,true);
 }
 function idle(){

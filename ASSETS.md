@@ -1,5 +1,5 @@
 # Application icon
 
-`AppIcon.png` is the purple/coral edit of the existing application icon, generated with the built-in ImageGen tool. `AppIcon.icns` contains macOS icon sizes generated from it with sips/iconutil.
+`AppIcon.png` is an original static recognition icon generated with the built-in image generation tool: an ivory rounded-square tile, blue five-part quota ring, and bold navy GPT text. It identifies an independent GPT allowance utility and does not use the official ChatGPT mark or imply a live remaining percentage. Purple/red gradients and the old speedometer were removed.
 
-Prompt: Preserve the rounded-square silhouette, transparent exterior, white speedometer and needle, and three mint green bars. Change only the blue/cyan glass tile and rim to a deep violet, lavender and warm coral-magenta glass gradient matching the purple/coral UI. No added text or symbols.
+Generated transparent PNG alpha is preserved. Standard macOS icon sizes are produced with sips; iconutil packages them into `AppIcon.icns`. No user screenshots or private data are part of this asset.

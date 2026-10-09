@@ -71,4 +71,7 @@ context.acceptResult({ok:false,error:'请求失败'});
 assert.equal(context.snapshot.windows[0].used,4);assert.equal(context.lastError,'请求失败');
 context.acceptResult(snapshot(95));assert.equal(context.snapshot.windows[0].used,5);assert.equal(context.lastError,'');cases++;
 assert.ok(!/5\s*小时|短期额度|five_hour|18000|设计预览|示例数据/.test(source));cases++;
+assert.ok(source.includes('1|2|4,$.NSBackingStoreBuffered'));
+assert.ok(source.includes('window.minSize=$.NSMakeSize(320,332);window.maxSize=$.NSMakeSize(320,332);window.setContentSize($.NSMakeSize(320,300))'));
+assert.ok(!source.includes('setFrameAutosaveName'));cases++;
 console.log(JSON.stringify({passed:true,cases,coverage:'quota colors and fractional bars; exact 50/25 boundaries; missing/invalid data; success/failure/stale; reset timezone; narrow layout; no short-term UI'},null,2));
