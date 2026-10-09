@@ -1,7 +1,7 @@
-// AI Usage Bar Local 2.4.2 — native weekly quota utility.
+// AI Usage Bar Local 2.4.3 — native weekly quota utility.
 ObjC.import('AppKit');
 ObjC.import('Foundation');
-var APP_VERSION='2.4.2';
+var APP_VERSION='2.4.3';
 var base=ObjC.unwrap($.NSBundle.mainBundle.resourcePath);
 var stateDir=ObjC.unwrap($.NSHomeDirectory())+'/Library/Application Support/AI Usage Bar Local';
 var app=$.NSApplication.sharedApplication;

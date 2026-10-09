@@ -1,13 +1,13 @@
 {
   "name": "AI Usage Bar Local",
-  "version": "2.4.2",
+  "version": "2.4.3",
   "upstream": "https://github.com/liamlai88/ai-usage-bar",
   "upstream_commit": "5109cc192f36d782a57f2a3c1c8e6eadc8995b1a",
   "type": "local hardened native JXA port; not an upstream release",
   "sources": {
-    "main.js": "6e0c32180bfd94af4f1a0c00a931d389dcf6d1ad2078db745ea3c7ed282129d2",
+    "main.js": "135b6dd7a115e01fc36de700602946950794855c665b47cac3cf108334661a99",
     "collector.py": "89a146f2171a94fcd0fc7d8538205331e15074dc0c4bb68b066a588d460796d4",
     "AppIcon.icns": "b5abc137ed9b65639241b7fe024a67d93e0c4c1fe2746fff73298f68c3022a1d"
   },
-  "changes": "Fixed compact 320x332 native window; GPT quota-ring launch icon; weekly quota thresholds and five-pillar dynamic indicator retained."
+  "changes": "Prohibit duplicate formal app instances; fixed compact window and GPT quota launch icon retained."
 }
