@@ -1,11 +1,12 @@
-// AI Usage Bar Local 2.4.3 — native weekly quota utility.
+// AI Usage Bar Local 2.4.4 — native weekly quota utility.
 ObjC.import('AppKit');
 ObjC.import('Foundation');
-var APP_VERSION='2.4.3';
+var APP_VERSION='2.4.4';
 var base=ObjC.unwrap($.NSBundle.mainBundle.resourcePath);
 var stateDir=ObjC.unwrap($.NSHomeDirectory())+'/Library/Application Support/AI Usage Bar Local';
 var app=$.NSApplication.sharedApplication;
 var status,menu,window,delegate,root,ticker,task=null,pipe=null;
+var observer=null,transport=null,lastServiceStart=0,lastUsageStamp=0;
 var snapshot=null,lastError='',nextFetch=0,started=0,lastDraw=0;
 var W=320,H=300;
 var palette={bg:'#FAFAFC',ink:'#1D1D1F',muted:'#6E6E73',line:'#E0E0E5',green:'#34C759',blue:'#007AFF',red:'#FF3B30',unknown:'#8E8E93'};
@@ -32,7 +33,7 @@ function viewModel(data,error,now){
  var windows=data&&Array.isArray(data.windows)?data.windows:[];
  var week=windows.find(function(w){return w.label==='Codex'&&w.seconds===604800&&finiteNumber(w.used)&&w.used>=0&&w.used<=100;})||null;
  var timestamp=data&&finiteNumber(data.fetched_at)?data.fetched_at:null;
- var stale=!!error||!!(data&&(timestamp===null||now-timestamp>150));
+ var stale=!!error||!!(data&&(timestamp===null||now-(finiteNumber(data.full_fetched_at)?data.full_fetched_at:timestamp)>720));
  var remaining=week?Math.round((100-week.used)*1e10)/1e10:null;
  var reset=week&&finiteNumber(week.reset)&&week.reset>0?week.reset:null;
  var passes=data&&finiteNumber(data.reset_credits)&&data.reset_credits>=0?data.reset_credits:null;
@@ -108,7 +109,7 @@ function draw(){
  label(vm.passes,l.passesX,239,W/2-36,25,18,0.5);
  divider(15,H-36,W-30);
  label(vm.updated,15,l.footerY,W-117,14,10,0,vm.stale?'#9A5A00':palette.muted);
- label('每 60 秒刷新',W-93,l.footerY,78,14,10,0,palette.muted);
+ label(transport&&transport.connected?'通知 + 10分钟':'10分钟补查',W-93,l.footerY,78,14,10,0,palette.muted);
  if(vm.notice)label(vm.notice,15,H-14,W-30,13,10,0,'#9A5A00');
  var indicator=indicatorState(vm);
  var title=(vm.stale?'⚠ ':'')+(vm.remaining===null?'Codex':'周 '+vm.remaining+'%余')+(vm.credits==='—'?'':' · '+Math.floor(Number(snapshot.credits)).toLocaleString('en-US')+'点');
@@ -127,7 +128,7 @@ function draw(){
 function addItem(title,action){var item=$.NSMenuItem.alloc.initWithTitleActionKeyEquivalent($(title),action||null,$(''));if(action)item.target=delegate;menu.addItem(item);}
 function showWindow(){window.makeKeyAndOrderFront(null);app.activateIgnoringOtherApps(true);}
 function details(){
- var vm=viewModel(snapshot,lastError,Date.now()/1000),rows=['每 60 秒自动刷新。圆环表示每周剩余比例。',''];
+ var vm=viewModel(snapshot,lastError,Date.now()/1000),rows=['额度通知立即更新；每 10 分钟补查。启动、重连、唤醒及重置时核对。圆环表示每周剩余比例。',transport&&transport.event_warning?transport.event_warning:'通知连接正常',''];
  if(snapshot){rows.push(vm.stale?'以下为上次成功获取的数据。':'更新时间：'+fmtDate(snapshot.fetched_at));rows.push(vm.week?'每周额度：'+vm.used+' · 剩余 '+vm.percent:'每周额度：未提供');rows.push('下次重置：'+vm.resetText,'Credits 精确余额：'+(snapshot.credits===null?'未提供':snapshot.credits),'可用重置券：'+vm.passes);
   rows.push('当前接口不区分购买与赠送，不提供累计购买额与到期明细。');
   (snapshot.models||[]).forEach(function(m){rows.push(m.name+'：'+(m.available?'可用':'暂不可用'));});
@@ -136,13 +137,15 @@ function details(){
  }else rows.push('尚未获取额度数据。');if(vm.notice)rows.push('',vm.notice);rows.push('','独立 ChatGPT 聊天限额未由此接口提供。');
  var a=$.NSAlert.alloc.init;a.messageText=$('额度详情');a.informativeText=$(rows.join('\n'));a.addButtonWithTitle('知道了');a.runModal;
 }
-function startFetch(){
- if(task)return;
- try{var nextTask=$.NSTask.alloc.init;if(!nextTask)throw new Error('无法创建刷新任务');var nextPipe=$.NSPipe.pipe;
-  nextTask.executableURL=$.NSURL.fileURLWithPath('/usr/local/bin/python3');nextTask.arguments=$(['-I','-B',base+'/collector.py']);nextTask.environment=$({HOME:ObjC.unwrap($.NSHomeDirectory()),PATH:'/usr/bin:/bin',LANG:'en_US.UTF-8',PYTHONUTF8:'1'});
-  nextTask.standardOutput=nextPipe;nextTask.standardError=$.NSFileHandle.fileHandleWithNullDevice;nextTask.launch;task=nextTask;pipe=nextPipe;started=Date.now();nextFetch=started+60000;
- }catch(e){task=null;pipe=null;lastError='刷新失败，稍后自动重试';nextFetch=Date.now()+60000;draw();}
+function readPrivate(name){try{var text=$.NSString.stringWithContentsOfFileEncodingError(stateDir+'/'+name,$.NSUTF8StringEncoding,null);return text?JSON.parse(ObjC.unwrap(text)):null;}catch(e){return null;}}
+function signalObserver(name){$('refresh').writeToFileAtomicallyEncodingError(stateDir+'/.'+name,true,$.NSUTF8StringEncoding,null);}
+function startObserver(){
+ if(observer&&observer.isRunning)return;
+ try{observer=$.NSTask.alloc.init;observer.executableURL=$.NSURL.fileURLWithPath('/usr/local/bin/python3');observer.arguments=$(['-I','-B',base+'/usage_service.py',String(Number($.NSProcessInfo.processInfo.processIdentifier))]);observer.environment=$({HOME:ObjC.unwrap($.NSHomeDirectory()),PATH:'/usr/bin:/bin:/usr/sbin:/sbin',LANG:'en_US.UTF-8',PYTHONUTF8:'1'});observer.standardOutput=$.NSFileHandle.fileHandleWithNullDevice;observer.standardError=$.NSFileHandle.fileHandleWithNullDevice;observer.launch;lastServiceStart=Date.now();}
+ catch(e){observer=null;lastError='额度观察器启动失败，稍后自动重试';lastServiceStart=Date.now();}
 }
+function startFetch(){startObserver();signalObserver('refresh');}
+function stopObserver(){if(observer&&observer.isRunning)observer.terminate;observer=null;}
 function acceptResult(result){if(result&&result.ok){snapshot=result;lastError='';writePrivate('usage.json',snapshot);}else lastError=result&&result.error?result.error:'读取失败，稍后重试';}
 ObjC.registerSubclass({name:'AIUsageLocalDelegate',superclass:'NSObject',methods:{
  'tick:':{types:['void',['id']],implementation:function(){idle();}},
@@ -151,22 +154,30 @@ ObjC.registerSubclass({name:'AIUsageLocalDelegate',superclass:'NSObject',methods
  'refresh:':{types:['void',['id']],implementation:function(){startFetch();draw();}},
  'details:':{types:['void',['id']],implementation:function(){details();}},
  'official:':{types:['void',['id']],implementation:function(){$.NSWorkspace.sharedWorkspace.openURL($.NSURL.URLWithString('https://chatgpt.com/codex/settings/usage'));}},
- 'stop:':{types:['void',['id']],implementation:function(){if(task)task.terminate;app.terminate(null);}}
+ 'wake:':{types:['void',['id']],implementation:function(){startObserver();signalObserver('wake');}},
+ 'sleep:':{types:['void',['id']],implementation:function(){lastError='Mac 正在休眠，唤醒后核对额度';draw();}},
+ 'applicationWillTerminate:':{types:['void',['id']],implementation:function(){stopObserver();}},
+ 'stop:':{types:['void',['id']],implementation:function(){stopObserver();app.terminate(null);}}
 }});
 function startUI(){
  app.setActivationPolicy($.NSApplicationActivationPolicyAccessory);app.applicationIconImage=$.NSImage.alloc.initWithContentsOfFile(base+'/AppIcon.icns');$.NSFileManager.defaultManager.createDirectoryAtPathWithIntermediateDirectoriesAttributesError(stateDir,true,$({NSFilePosixPermissions:448}),null);
- delegate=$.AIUsageLocalDelegate.alloc.init;status=$.NSStatusBar.systemStatusBar.statusItemWithLength($.NSVariableStatusItemLength);menu=$.NSMenu.alloc.initWithTitle($('Codex 额度'));status.menu=menu;
+ delegate=$.AIUsageLocalDelegate.alloc.init;app.delegate=delegate;$.NSWorkspace.sharedWorkspace.notificationCenter.addObserverSelectorNameObject(delegate,'wake:',$.NSWorkspaceDidWakeNotification,null);$.NSWorkspace.sharedWorkspace.notificationCenter.addObserverSelectorNameObject(delegate,'sleep:',$.NSWorkspaceWillSleepNotification,null);status=$.NSStatusBar.systemStatusBar.statusItemWithLength($.NSVariableStatusItemLength);menu=$.NSMenu.alloc.initWithTitle($('Codex 额度'));status.menu=menu;
  window=$.NSWindow.alloc.initWithContentRectStyleMaskBackingDefer($.NSMakeRect(0,0,W,H),1|2|4,$.NSBackingStoreBuffered,false);window.title=$('Codex 用量');window.titleVisibility=1;window.titlebarAppearsTransparent=true;window.releasedWhenClosed=false;window.appearance=$.NSAppearance.appearanceNamed($.NSAppearanceNameAqua);window.minSize=$.NSMakeSize(320,332);window.maxSize=$.NSMakeSize(320,332);window.setContentSize($.NSMakeSize(320,300));
- root=window.contentView;window.delegate=delegate;window.center;draw();showWindow();startFetch();draw();ticker=$.NSTimer.scheduledTimerWithTimeIntervalTargetSelectorUserInfoRepeats(1,delegate,'tick:',null,true);
+ root=window.contentView;window.delegate=delegate;window.center;draw();showWindow();startObserver();draw();ticker=$.NSTimer.scheduledTimerWithTimeIntervalTargetSelectorUserInfoRepeats(1,delegate,'tick:',null,true);
 }
 function idle(){
  if(!root)return 1;
  try{
-  if(task&&!task.isRunning){var bytes=pipe.fileHandleForReading.readDataToEndOfFile;var result=JSON.parse(ObjC.unwrap($.NSString.alloc.initWithDataEncoding(bytes,$.NSUTF8StringEncoding)));task=null;pipe=null;acceptResult(result);draw();}
-  if(task&&Date.now()-started>27000){task.terminate;task=null;pipe=null;lastError='请求超时，稍后自动重试';draw();}
-  if(!task&&Date.now()>=nextFetch)startFetch();
-  if(Number(root.bounds.size.width)!==W||Number(root.bounds.size.height)!==H||Date.now()-lastDraw>15000)draw();
- }catch(e){task=null;pipe=null;lastError='同步或显示失败，稍后重试';nextFetch=Date.now()+60000;writePrivate('ui-error-'+APP_VERSION+'.json',{version:APP_VERSION,at:Date.now()/1000,message:String(e).slice(0,250)});}
+  if((!observer||!observer.isRunning)&&Date.now()-lastServiceStart>5000)startObserver();
+  var nextTransport=readPrivate('transport.json'),now=Date.now()/1000;
+  if(nextTransport){transport=nextTransport;task=transport.busy?observer:null;}
+  var data=readPrivate('usage.json');
+  if(data&&data.ok){snapshot=data;}
+  lastError=transport&&transport.error?transport.error:'';
+  if(!transport||!finiteNumber(transport.heartbeat)||now-transport.heartbeat>15){if(Date.now()-lastServiceStart>15000)lastError='额度观察器未响应，正在恢复';if(transport&&finiteNumber(transport.heartbeat)&&now-transport.heartbeat>45&&Date.now()-lastServiceStart>45000){stopObserver();startObserver();}}
+  var stamp=JSON.stringify([snapshot&&snapshot.fetched_at,snapshot&&snapshot.full_fetched_at,lastError,transport&&transport.connected,transport&&transport.busy]);
+  if(stamp!==lastUsageStamp||Date.now()-lastDraw>15000){lastUsageStamp=stamp;draw();}
+ }catch(e){lastError='同步或显示失败，稍后重试';writePrivate('ui-error-'+APP_VERSION+'.json',{version:APP_VERSION,at:Date.now()/1000,message:String(e).slice(0,250)});}
  return 1;
 }
 function reopen(){showWindow();}

@@ -52,7 +52,7 @@ for(const error of ['读取失败','请求超时','登录已过期']){
  assert.equal(failed.color,'#8E8E93');assert.equal(context.indicatorState(failed).fills,null);
  assert.match(failed.caption,/上次数据/);assert.equal(failed.notice,error);cases++;
 }
-const expired=context.viewModel(snapshot(96),'',1151);
+const expired=context.viewModel(snapshot(96),'',1721);
 assert.equal(expired.stale,true);assert.equal(context.indicatorState(expired).fills,null);cases++;
 const missingReset=context.viewModel(snapshot(96,null),'',1001);
 assert.equal(missingReset.reset,null);assert.equal(missingReset.resetText,'重置时间暂未提供');cases++;
@@ -75,3 +75,10 @@ assert.ok(source.includes('1|2|4,$.NSBackingStoreBuffered'));
 assert.ok(source.includes('window.minSize=$.NSMakeSize(320,332);window.maxSize=$.NSMakeSize(320,332);window.setContentSize($.NSMakeSize(320,300))'));
 assert.ok(!source.includes('setFrameAutosaveName'));cases++;
 console.log(JSON.stringify({passed:true,cases,coverage:'quota colors and fractional bars; exact 50/25 boundaries; missing/invalid data; success/failure/stale; reset timezone; narrow layout; no short-term UI'},null,2));
+
+const quiet = context.viewModel({...snapshot(96), full_fetched_at:1000},'',1599);
+assert.equal(quiet.stale,false);
+const quietExpired = context.viewModel({...snapshot(96), full_fetched_at:1000, fetched_at:1719},'',1721);
+assert.equal(quietExpired.stale,true);
+cases+=2;
+console.log(JSON.stringify({passed:true,totalCases:cases,coverage:'quiet event stream through compensation interval; sparse events do not hide overdue full checks'},null,2));

@@ -20,10 +20,10 @@ p = output/'Contents/Info.plist'
 info = plistlib.loads(p.read_bytes())
 info.pop('CFBundleIconName', None)  # Remove the template asset-catalog override.
 info.update(CFBundleIdentifier='local.aiusagebar.safe', CFBundleName='AI Usage Bar Local',
-            CFBundleDisplayName='AI Usage Bar Local', CFBundleShortVersionString='2.4.3',
-            CFBundleIconFile='AppIcon.icns', CFBundleVersion='12', LSUIElement=True, LSMultipleInstancesProhibited=True)
+            CFBundleDisplayName='AI Usage Bar Local', CFBundleShortVersionString='2.4.4',
+            CFBundleIconFile='AppIcon.icns', CFBundleVersion='13', LSUIElement=True, LSMultipleInstancesProhibited=True)
 p.write_bytes(plistlib.dumps(info))
-for name in ['collector.py', 'main.js', 'LICENSE', 'BUILD.json', 'AppIcon.icns']:
+for name in ['collector.py', 'usage_service.py', 'main.js', 'LICENSE', 'BUILD.json', 'AppIcon.icns']:
     shutil.copy2(source/name, output/'Contents/Resources'/name)
 manifest=json.loads((source/'BUILD.json').read_text())
 for name,digest in manifest['sources'].items():

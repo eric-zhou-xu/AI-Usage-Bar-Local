@@ -15,3 +15,9 @@ window-*.png
 menu-bar-*.png
 ui-error-*.json
 startup-error-*.json
+
+# Private observer state and control markers.
+transport.json
+.observer.lock
+.refresh
+.wake
